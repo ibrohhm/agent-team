@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-team",
+  "description": "Autonomous ship pipeline — planner → implementer → reviewer → tester.",
+  "owner": {
+    "name": "ibrohim syarif"
+  },
+  "plugins": [
+    {
+      "name": "agent-team",
+      "description": "Orchestrates planner → implementer → reviewer → tester pipeline from a free-text task description.",
+      "category": "productivity",
+      "source": {
+        "source": "github",
+        "repo": "ibrohhm/agent-team",
+        "sha": "7fc10882408d08fe03ff50e5b71e0775bf3ae209"
+      }
+    }
+  ]
+}
