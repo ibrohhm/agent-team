@@ -159,54 +159,10 @@ Extract path from `UX_WRITTEN:`. Print:
 
 ---
 
-### 9. Offer backlog
+### 9. Report completion
 
-Print:
-```
-Generate backlog? (yes / stop)
-```
-
-Wait for user response. If user says `stop`, `no`, or `done` — print:
 ```
 [product-design] Done.
   PRD: <PRD_PATH>
   UX:  <UX_PATH>
-```
-Stop.
-
----
-
-### 10. Dispatch backlog-generator
-
-Set `BACKLOG_PATH` = `<CWD>/<APP_NAME>-backlog.md`
-
-Dispatch subagent `agent-team:backlog-generator` with:
-```
-PRD_PATH: <PRD_PATH>
-UX_PATH: <UX_PATH>
-OUTPUT_PATH: <BACKLOG_PATH>
-```
-
-If output contains `FAIL:` — print reason, then print:
-```
-[product-design] Done.
-  PRD: <PRD_PATH>
-  UX:  <UX_PATH>
-```
-Stop.
-
-Extract path from `BACKLOG_WRITTEN:`. Print:
-```
-[product-design] ✓ Backlog written to <path>
-```
-
----
-
-### 11. Report completion
-
-```
-[product-design] Done.
-  PRD:     <PRD_PATH>
-  UX:      <UX_PATH>
-  Backlog: <BACKLOG_PATH>
 ```
