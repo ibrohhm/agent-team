@@ -48,6 +48,28 @@ Branch: feat/add-payment-retry-logic-for-d
 Branch ready for human review.
 ```
 
+### `/product-design` — product design pipeline
+
+```
+/product-design cashier app for small warung
+```
+
+Runs a two-agent conversational pipeline — PM first, UX second — and generates two markdown docs in the current directory.
+
+**Output:**
+- `<app-name>-prd.md` — Product Requirements Document (via product-manager agent)
+- `<app-name>-ux.md` — UX Design Document (via ux-designer agent)
+
+**Pipeline:** product-manager asks about users, goals, features, and business rules → writes PRD → ux-designer reads PRD, asks about platform, device, and user behavior → writes UX doc. Each stage is interruptible (`stop` / `done`).
+
+### `/jira-clarify` — Jira ticket breakdown
+
+```
+/jira-clarify ANN-4033
+```
+
+Two-stage pipeline: fetches ticket, asks clarification questions, then writes implementation detail to Jira description.
+
 ### Individual agents
 
 Run any stage independently:
@@ -67,6 +89,8 @@ Run any stage independently:
 | implementer | sonnet | Executes plan step-by-step, commits each task |
 | reviewer | sonnet | Diffs branch vs main, emits Blocker/Nit findings |
 | tester | haiku | Runs `go vet`, `go test -race -short`, `golangci-lint` |
+| product-manager | sonnet | Conversational PM — asks about users, goals, features, business rules → writes PRD |
+| ux-designer | sonnet | Conversational UX — reads PRD, asks about platform, device, user behavior → writes UX doc |
 
 ## Installation
 
