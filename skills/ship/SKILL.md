@@ -59,7 +59,7 @@ Check the agent's return message:
   Branch feat/<slug> preserved. Pick up from planner.
   ```
 
-### 3. Run implementer
+### 3. Run implementer (initial)
 
 Dispatch subagent `agent-team:implementer` with:
 ```
@@ -68,7 +68,7 @@ BRANCH: <BRANCH>
 ```
 
 Check return:
-- Contains `DONE:` → extract commit count, continue to step 4
+- Contains `DONE:` → store commit info as `initial_commit_info`, proceed to step 4
 - Contains `FAIL:` → **stop**. Report:
   ```
   [planner]     ✓
@@ -78,25 +78,56 @@ Check return:
   Branch <BRANCH> preserved with partial commits. Pick up from implementer.
   ```
 
-### 4. Run reviewer
+### 4. Review-retry loop
+
+Set `review_attempt = 1`, `max_attempts = 2`.
+
+Track implementer results: start with list `["initial"]`.
+
+**Loop:**
 
 Dispatch subagent `agent-team:reviewer` with:
 ```
 BRANCH: <BRANCH>
 ```
 
-Check return:
-- Contains `REVIEW_RESULT: PASS` → continue to step 5
-- Contains `REVIEW_RESULT: BLOCKED` → **stop**. Report:
+**If `REVIEW_RESULT: PASS`** → continue to step 5.
+
+**If `REVIEW_RESULT: BLOCKED`:**
+
+- If `review_attempt >= max_attempts` → **stop**. Report:
   ```
   [planner]     ✓
-  [implementer] ✓
-  [reviewer]    ✗ BLOCKED
+  [implementer] <implementer attempts summary>
+  [reviewer]    ✗ BLOCKED after <review_attempt> attempt(s)
 
   <full reviewer output>
 
-  Branch <BRANCH> preserved. Resolve blockers before testing.
+  Branch <BRANCH> preserved. Manual review required.
   ```
+  Where `<implementer attempts summary>` is:
+  - No retries yet: `✓ (initial)`
+  - After one retry: `✓ (initial) + ✓ (retry 1)`
+
+- Otherwise:
+  - Extract the BLOCKERS lines from reviewer output
+  - Dispatch subagent `agent-team:implementer` with:
+    ```
+    PLAN_PATH: <PLAN_PATH>
+    BRANCH: <BRANCH>
+    REVIEW_BLOCKERS:
+    <paste BLOCKERS lines from reviewer output, one per line>
+    ```
+  - Check return:
+    - Contains `DONE:` → append `"retry <review_attempt>"` to attempts list, increment `review_attempt`, **continue loop**
+    - Contains `FAIL:` → **stop**. Report:
+      ```
+      [planner]     ✓
+      [implementer] ✓ (initial) + ✗ FAILED (retry <review_attempt>)
+      Reason: <everything after "FAIL: ">
+
+      Branch <BRANCH> preserved with partial commits. Fix manually.
+      ```
 
 ### 5. Run tester
 
@@ -121,12 +152,20 @@ Check return:
 
 ### 6. Print success summary
 
+Build the implementer label from the attempts list:
+- No retries (`["initial"]`): `✓ <initial_commit_info>`
+- One retry (`["initial", "retry 1"]`): `✓ (initial) + ✓ (retry 1)`
+
+Build the reviewer label:
+- Passed on attempt 1: `✓ No blockers. <nit count> nit(s)`
+- Passed after retry: `✓ (passed on attempt 2). <nit count> nit(s)`
+
 ```
 Branch: <BRANCH>
 
 [planner]     ✓ Plan written → <PLAN_PATH>
-[implementer] ✓ <commit info from DONE: message>
-[reviewer]    ✓ No blockers. <nit count> nit(s)
+[implementer] <implementer label>
+[reviewer]    <reviewer label>
 [tester]      ✓ PASS
 
 <nits section from reviewer output, if any>

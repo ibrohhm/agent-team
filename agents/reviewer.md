@@ -27,9 +27,11 @@ BRANCH: <branch name to review>
    git diff --name-only main...HEAD
    ```
 3. For each changed file, read it in full if needed for context
-4. Identify findings:
-   - **Blocker**: correctness bug, security issue (SQL injection, secrets in code, auth bypass), data loss risk, nil/null dereference, off-by-one in critical path, missing error check on I/O
-   - **Nit**: naming inconsistency, redundant code, minor style deviation, missing doc comment on exported symbol
+4. For each changed file, read surrounding code and immediate callers for context — don't judge the diff in isolation
+5. Identify findings:
+   - **Blocker**: correctness bug, security issue (SQL injection, secrets in code, auth bypass), data loss risk, nil/null dereference, off-by-one in critical path, missing error check on I/O, missing timeout/deadline on I/O call, missing idempotency key on mutation/payment op, inconsistent state risk (e.g. DB write succeeds but queue emit can fail with no rollback), breaking API contract (removed/renamed exported symbol, changed Kafka schema, removed HTTP route)
+   - **Nit**: naming inconsistency, redundant code, minor style deviation, missing doc comment on exported symbol, observability gap on critical path (missing metric, log correlation ID, or tracing span), pattern deviation (similar integrations in the codebase all have X — this one doesn't)
+   - **Signal bar**: only flag when confident. Drop findings below ~80% confidence — a wrong flag costs more than a missed nit
 
 ## Output format
 

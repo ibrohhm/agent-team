@@ -15,10 +15,23 @@ You receive a message in this format:
 ```
 PLAN_PATH: <absolute path to the plan markdown file>
 BRANCH: <current branch name, e.g. feat/add-payment-retry>
+REVIEW_BLOCKERS: (optional — present only on review-retry runs)
+- path/to/file.go:15 — error from rows.Scan not checked
+- path/to/file.go:42 — nil dereference on user pointer
 ```
 
 ## Process
 
+**If `REVIEW_BLOCKERS` is present in the input:**
+1. Ignore the plan at PLAN_PATH entirely
+2. Fix only the issues listed under REVIEW_BLOCKERS
+3. Run tests after fixing: `go vet ./... && go test -race -short -count=1 ./...`
+4. If tests fail: stop immediately and report
+5. Stage and commit only the fixed files:
+   - Commit message: `fix(review): resolve review blockers`
+6. Count commits made
+
+**If `REVIEW_BLOCKERS` is absent (normal mode):**
 1. Read the plan at PLAN_PATH
 2. Execute tasks in order. For each task:
    - Follow the checkbox steps exactly
