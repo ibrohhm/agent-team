@@ -1,42 +1,53 @@
 ---
 name: ship
-description: Orchestrates a clarifier → planner → implementer → reviewer → tester pipeline from free-text. Clarifies scope, creates a branch, plans, implements, reviews, and tests — all before human touch. Triggers on "/ship <task description>".
+description: Orchestrates a clarifier → planner → implementer → reviewer → tester pipeline. Accepts a Jira key (ANN-1234) or free-text. Clarifies scope, creates a branch, plans, implements, reviews, and tests — all before human touch. Triggers on "/ship <task or jira key>".
 ---
 
 # /ship
 
-Run the full autonomous ship pipeline from a free-text task description.
+Run the full autonomous ship pipeline from a Jira key or free-text task description.
 
 ## Steps
 
-### 0. Clarify task scope
+### 0. Detect mode and clarify task scope
 
 ```bash
 pwd
 ```
 
-Dispatch subagent `agent-team:clarifier` with:
+**Detect input mode from ARGUMENTS:**
+- If ARGUMENTS matches pattern `[A-Z]+-[0-9]+` (e.g. `ANN-1234`) → **Jira mode**:
+  - Set `JIRA_KEY = ARGUMENTS`
+  - Fetch ticket via `mcp__plugin_atlassian_atlassian__getJiraIssue`: `cloudId: amartha.atlassian.net`, `issueIdOrKey: <JIRA_KEY>`, `responseContentFormat: markdown`
+  - Set `TASK_CONTEXT = <ticket summary>\n<ticket description>`
+- Otherwise → **Text mode**:
+  - Set `JIRA_KEY = ""`
+  - Set `TASK_CONTEXT = ARGUMENTS`
+
+**Dispatch clarifier:**
 ```
-TASK: <original free-text from ARGUMENTS>
+TASK_CONTEXT: <TASK_CONTEXT>
 WORKDIR: <output of pwd>
 ```
 
 Check return:
 - Contains `CLEAR` → proceed to step 1
-- Contains `CLARIFY:` → ask user with AskUserQuestion using the question after `CLARIFY:`, then append the answer to ARGUMENTS: `<original ARGUMENTS>. <answer>`. Proceed to step 1 with enriched ARGUMENTS.
+- Contains `CLARIFY:` → ask user with AskUserQuestion using the question after `CLARIFY:`, append answer to TASK_CONTEXT: `<TASK_CONTEXT>\nClarification: <answer>`. Proceed to step 1 with enriched TASK_CONTEXT.
 
 ### 1. Derive slug, infer type, and create branch
 
-From ARGUMENTS (the free-text after `/ship`):
-- Lowercase the text
-- Replace spaces and special characters with hyphens
-- Strip all characters that are not alphanumeric or hyphens
-- Truncate to 30 characters
-- Remove trailing hyphens
+**Derive slug:**
+- Jira mode (`JIRA_KEY` is set): `slug = lowercase(JIRA_KEY)` — e.g. `ANN-1234` → `ann-1234`
+- Text mode: from TASK_CONTEXT:
+  - Lowercase the text
+  - Replace spaces and special characters with hyphens
+  - Strip all characters that are not alphanumeric or hyphens
+  - Truncate to 30 characters
+  - Remove trailing hyphens
 
-Example: `"Add payment retry logic for DANA"` → `add-payment-retry-logic-for-d`
+Example (text mode): `"Add payment retry logic for DANA"` → `add-payment-retry-logic-for-d`
 
-Infer TYPE from ARGUMENTS (first match wins, case-insensitive):
+Infer TYPE from TASK_CONTEXT (first match wins, case-insensitive):
 - Contains "fix", "bug", "repair", "resolve", "broken", "crash" → `TYPE=fix`
 - Contains "refactor", "cleanup", "clean up", "restructure" → `TYPE=refactor`
 - Contains "test", "spec", "coverage" → `TYPE=test`
@@ -91,10 +102,12 @@ mkdir -p <repo-root>/docs/superpowers/plans
 
 Dispatch subagent `agent-team:planner` with this exact message body:
 ```
-TASK: <original free-text from ARGUMENTS>
+TASK: <TASK_CONTEXT>
 PLAN_PATH: <PLAN_PATH>
 WORKDIR: <WORKDIR>
+JIRA_KEY: <JIRA_KEY>
 ```
+(omit `JIRA_KEY` line if empty)
 
 Check the agent's return message:
 - If it contains `PLAN_WRITTEN:` → extract the path and continue to step 3

@@ -13,19 +13,18 @@ Your job: read a task description, explore the codebase, and write a bite-sized 
 
 You receive a message in this format:
 ```
-TASK: <free-text task description>
+TASK: <task description — may be free-text or a full Jira ticket body>
 PLAN_PATH: <absolute path where to save the plan>
 WORKDIR: <absolute path to the repo root>
+JIRA_KEY: <optional — e.g. ANN-1234, present only in Jira mode>
 ```
 
 ## Process
 
 1. Use absolute paths for all commands (do not rely on cd)
 2. Explore the codebase:
-   - Run `git -C <WORKDIR> log --oneline -10` to understand recent work
-   - Run `find <WORKDIR> -name "*.go" | head -40` to map the structure
-   - Read files most likely relevant to the task
-   - Check existing patterns: how are similar things structured?
+   - **If `JIRA_KEY` is present:** scope is pre-confirmed. Skip broad scan. Use key terms from TASK to grep for directly relevant files, read them deeply, identify reuse candidates and integration points.
+   - **If `JIRA_KEY` is absent:** broad scan — `git -C <WORKDIR> log --oneline -10`, `find <WORKDIR> -name "*.go" | head -40`, read files most likely relevant to the task, check existing patterns.
 3. Write the implementation plan to PLAN_PATH
 
 ## Plan format

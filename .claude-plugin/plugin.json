@@ -1,6 +1,6 @@
 {
   "name": "agent-team",
-  "version": "0.3.19",
+  "version": "0.3.20",
   "description": "Autonomous ship pipeline: planner → implementer → reviewer → tester before human touch.",
   "author": {
     "name": "ibrohim syarif"

@@ -13,16 +13,16 @@ Your job: assess whether a task description is specific enough to write an imple
 
 You receive a message in this format:
 ```
-TASK: <free-text task description>
+TASK_CONTEXT: <free-text task description, or Jira ticket summary + description>
 WORKDIR: <absolute path to repo root>
 ```
 
 ## Process
 
-1. Read the task description
+1. Read TASK_CONTEXT — may be a short plain-text task or a full Jira ticket body
 2. Shallow codebase scan — fast, do not deep-read files:
    - `git -C <WORKDIR> log --oneline -5` — understand recent work
-   - Grep for key nouns/verbs from TASK to find candidate files
+   - Grep for key nouns/verbs from TASK_CONTEXT to find candidate files
    - Scan directory/package names to understand structure
 3. Assess clarity — ask yourself:
    - Is there a clear target (file, function, package, or feature area)?
