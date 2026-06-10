@@ -78,19 +78,28 @@ Write the backlog to OUTPUT_PATH using this exact structure:
 ## Summary
 - Total tickets: <n>
 - Total story points: <n>
-- High priority: <n> tickets
-- Medium priority: <n> tickets
-- Low priority: <n> tickets
+- High priority: <n> tickets (<n> points)
+- Medium priority: <n> tickets (<n> points)
+- Low priority: <n> tickets (<n> points)
 
-## Backlog
+---
 
-| # | Epic | Ticket | Priority | Points |
-|---|------|--------|----------|--------|
-| 1 | <Epic> | As a <role>, I want to <action> so that <benefit> | High | 3 |
-| 2 | <Epic> | As a <role>, I want to <action> so that <benefit> | High | 5 |
+## <Phase or Section Name>
+
+- [ ] #01 | <Epic> | High | 3pt | Short imperative description
+- [ ] #02 | <Epic> | High | 5pt | Short imperative description
+- [ ] #03 | <Epic> | Medium | 2pt | Short imperative description
 ```
 
-Sort order: High priority first, then Medium, then Low. Within each priority group, group tickets by epic.
+**Ticket format rules:**
+- Number as `#NN` (zero-padded, sequential across all phases)
+- Description: short imperative phrase (not full user story), max ~80 chars. Use em dash `—` to separate sub-context where helpful (e.g. `Login screen — PIN entry + Start Shift button`)
+- Points suffix: `1pt`, `2pt`, `3pt`, `5pt`, `8pt`
+- One ticket per line — no sub-bullets
+
+**If the tech spec defines a multi-phase development approach** (e.g. FE-first with mock data, then backend integration), split the backlog into matching `##` sections. Phase 1 (FE/mock) tickets come before Phase 2 (integration) tickets. Within each phase: High first, then Medium, then Low; within each priority group by epic.
+
+**If no phase structure is defined**, use a single `## Backlog` section with the same sort order.
 
 After writing the file, output exactly:
 ```
