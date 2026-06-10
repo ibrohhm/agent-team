@@ -1,6 +1,6 @@
 ---
 name: ship
-description: Orchestrates a planner → implementer → reviewer → tester pipeline from free-text. Creates a branch, plans, implements, reviews, and tests — all before human touch. Triggers on "/ship <task description>".
+description: Orchestrates a clarifier → planner → implementer → reviewer → tester pipeline from free-text. Clarifies scope, creates a branch, plans, implements, reviews, and tests — all before human touch. Triggers on "/ship <task description>".
 ---
 
 # /ship
@@ -9,7 +9,23 @@ Run the full autonomous ship pipeline from a free-text task description.
 
 ## Steps
 
-### 1. Derive slug and create branch
+### 0. Clarify task scope
+
+```bash
+pwd
+```
+
+Dispatch subagent `agent-team:clarifier` with:
+```
+TASK: <original free-text from ARGUMENTS>
+WORKDIR: <output of pwd>
+```
+
+Check return:
+- Contains `CLEAR` → proceed to step 1
+- Contains `CLARIFY:` → ask user with AskUserQuestion using the question after `CLARIFY:`, then append the answer to ARGUMENTS: `<original ARGUMENTS>. <answer>`. Proceed to step 1 with enriched ARGUMENTS.
+
+### 1. Derive slug, infer type, and create branch
 
 From ARGUMENTS (the free-text after `/ship`):
 - Lowercase the text
@@ -20,10 +36,12 @@ From ARGUMENTS (the free-text after `/ship`):
 
 Example: `"Add payment retry logic for DANA"` → `add-payment-retry-logic-for-d`
 
-Run:
-```bash
-git checkout -b feat/<slug>
-```
+Infer TYPE from ARGUMENTS (first match wins, case-insensitive):
+- Contains "fix", "bug", "repair", "resolve", "broken", "crash" → `TYPE=fix`
+- Contains "refactor", "cleanup", "clean up", "restructure" → `TYPE=refactor`
+- Contains "test", "spec", "coverage" → `TYPE=test`
+- Contains "chore", "bump", "upgrade", "update dep" → `TYPE=chore`
+- Default → `TYPE=feat`
 
 Get today's date:
 ```bash
@@ -31,9 +49,38 @@ date +%Y-%m-%d
 ```
 
 Set these variables (used in subsequent steps):
-- `BRANCH` = `feat/<slug>`
+- `BRANCH` = `<type>/<slug>`
 - `PLAN_PATH` = `<repo-root>/docs/superpowers/plans/<date>-<slug>.md`
 - `WORKDIR` = output of `pwd`
+
+Check for uncommitted changes:
+```bash
+git status --porcelain
+```
+If output is non-empty → **stop**:
+```
+Cannot start: working tree has uncommitted changes. Commit or stash first.
+```
+
+Check if branch already exists:
+```bash
+git branch --list <type>/<slug>
+```
+If non-empty:
+- Look for existing plan:
+  ```bash
+  ls <repo-root>/docs/superpowers/plans/*<slug>.md 2>/dev/null | tail -1
+  ```
+- If plan file found → set PLAN_PATH to that file, print `Resuming: branch <BRANCH>, plan <PLAN_PATH>`, **skip to step 3**
+- If no plan file → **stop**:
+  ```
+  Branch <BRANCH> exists but no plan found. Delete the branch or add a plan file to resume.
+  ```
+
+Create branch:
+```bash
+git checkout -b <type>/<slug>
+```
 
 Create the plan directory if it does not exist:
 ```bash
@@ -51,12 +98,19 @@ WORKDIR: <WORKDIR>
 
 Check the agent's return message:
 - If it contains `PLAN_WRITTEN:` → extract the path and continue to step 3
-- If it contains `FAIL:` → **stop**. Report to user:
+- If it contains `AMBIGUOUS:` → run `git checkout main && git branch -D <BRANCH>`, then **stop**:
+  ```
+  [planner] ✗ AMBIGUOUS
+  Question: <everything after "AMBIGUOUS: ">
+
+  Branch deleted. Clarify and re-run /ship.
+  ```
+- If it contains `FAIL:` → run `git checkout main && git branch -D <BRANCH>`, then **stop**:
   ```
   [planner] ✗ FAILED
   Reason: <everything after "FAIL: ">
 
-  Branch feat/<slug> preserved. Pick up from planner.
+  Branch deleted.
   ```
 
 ### 3. Run implementer (initial)
@@ -110,7 +164,7 @@ BRANCH: <BRANCH>
   - After one retry: `✓ (initial) + ✓ (retry 1)`
 
 - Otherwise:
-  - Extract the BLOCKERS lines from reviewer output
+  - Extract blocker lines: take all lines starting with `- ` that appear after `BLOCKERS:` and before `NITS:` (or end of output) in the reviewer output
   - Dispatch subagent `agent-team:implementer` with:
     ```
     PLAN_PATH: <PLAN_PATH>

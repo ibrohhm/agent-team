@@ -35,8 +35,6 @@ The plan MUST use this exact header:
 ```
 # <Feature Name> Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** <one sentence>
 
 **Architecture:** <2-3 sentences>
@@ -64,6 +62,11 @@ Rules:
 On success, return exactly:
 ```
 PLAN_WRITTEN: <PLAN_PATH>
+```
+
+If the task description is too vague to plan without clarification (no clear scope, ambiguous files, multiple valid interpretations that would produce very different implementations), return:
+```
+AMBIGUOUS: <single specific question that would unblock planning>
 ```
 
 On failure, return:
